@@ -5,83 +5,39 @@ const width = window.innerWidth/2
 const height = window.innerHeight
 
 let radius = 400
-let angleToMove = 0 //randomAngle()
+let angleToMove = randomAngle()
 let cities = []
-let cityCount = 10
+let cityCount = 70
 let m = 50
 let T = 1/cityCount
-let frames = 60
-const alpha = 0.3
+let frames = 20
+let alphaVal = 0.3
+
+let modVal = 100
+
+let circularPoints = false
+let tours = []
+let globalTrialCounter = 0
 
 let cityQueues = []
 let chart
 let chartData = []
+let h1 = document.getElementById('optimum-dist')
+
+function randomAngle() {
+	return Math.random() * 2 * Math.PI
+}
+
+function getRandomPoint(minX, maxX, minY, maxY) {
+	const x = Math.floor(Math.random()*(maxX - minX + 1)) + minX
+	const y = Math.floor(Math.random()*(maxY - minY + 1)) + minY
+	return [x,y]
+}
 
 function setup() {
 	let myCanvas = createCanvas(width, height)
 	myCanvas.parent('p5')
-	let circleCenterX = width/2
-	let circleCenterY = height/2
-	
-
-	for(let i=0;i<cityCount;i++) {
-
-		const cityX = circleCenterX + radius*Math.cos(angleToMove)
-		const cityY = circleCenterY + radius*Math.sin(angleToMove)
-
-		const city = {
-			id: i,
-			x: cityX,
-			y: cityY,
-			distances: []
-		}
-
-		cities.push(city)
-
-		angleToMove++
-
-		cityQueues[i] = []
-	}
-
-	for(let i=0;i<cities.length;i++) {
-		const city1 = cities[i];
-		for(let j=0;j<cities.length;j++) {
-			if(i == j) {
-				city1.distances.push({
-					with: -1,
-					strength: 0,
-					distance: 0
-				})
-				continue
-			}
-			const city2 = cities[j];
-			const distance = dist(city1.x, city1.y, city2.x, city2.y) / 1000 // * normalizing distance for suitable exponent values
-			// TODO: Make sure to keep city distances in sync
-			city1.distances.push({
-				with: j,
-				strength: Math.exp(-distance/T),
-				distance
-			})
-		}
-	}
-
-
-	for(let cIndex=0;cIndex<cities.length;cIndex++) {
-		
-		const currentCity = cities[cIndex]
-
-		const priorityList = createPriorityList(currentCity)
-		cityQueues[cIndex] = priorityList
-
-	}
-
-	console.log(cityQueues)
-	console.log(cities[0])
-
-	frameRate(frames)
-	
-	
-	// chart
+	boot()
 
 	const ctx = document.getElementById('chart').getContext('2d')
 
@@ -135,24 +91,85 @@ function setup() {
 	})
 }
 
-function stopThis() {
-	console.log(cities)
-	noLoop()
+function boot() {
+	let circleCenterX = width/2
+	let circleCenterY = height/2
+	
+	cities = []
+	cityQueues = []
+
+	while(chartData.length > 0) chartData.pop()
+	if(chart) chart.update()
+
+	for(let i=0;i<cityCount;i++) {
+		
+		let cityX, cityY
+
+		if(circularPoints) {
+			cityX = circleCenterX + radius*Math.cos(angleToMove)
+			cityY = circleCenterY + radius*Math.sin(angleToMove)
+		} else {
+			[cityX, cityY] = getRandomPoint(50, width-50, 50, height-50)
+		}
+
+
+
+		const city = {
+			id: i,
+			x: cityX,
+			y: cityY,
+			distances: []
+		}
+
+		cities.push(city)
+
+		angleToMove = randomAngle()
+
+		cityQueues[i] = []
+	}
+
+	for(let i=0;i<cities.length;i++) {
+		const city1 = cities[i];
+		for(let j=0;j<cities.length;j++) {
+			if(i == j) {
+				city1.distances.push({
+					with: -1,
+					strength: 0,
+					distance: 0
+				})
+				continue
+			}
+			const city2 = cities[j];
+			const distance = dist(city1.x, city1.y, city2.x, city2.y) / 1000 // * normalizing distance for suitable exponent values
+			// TODO: Make sure to keep city distances in sync
+			city1.distances.push({
+				with: j,
+				strength: Math.exp(-distance/T),
+				distance
+			})
+		}
+	}
+
+
+	for(let cIndex=0;cIndex<cities.length;cIndex++) {
+		
+		const currentCity = cities[cIndex]
+
+		const priorityList = createPriorityList(currentCity)
+		cityQueues[cIndex] = priorityList
+
+	}
+
+	//console.log(cityQueues)
+	//console.log(cities[0])
+
+	frameRate(frames)
 }
-
-const tours = []
-
-let globalTrialCounter = 0
 
 function draw() {
 	clear()
-	strokeWeight(2)
+	strokeWeight(1)
 	stroke(0,0,0)
-	let circleCenterX = width/2
-	let circleCenterY = height/2
-
-	//ellipse(circleCenterX, circleCenterY, 2*radius)
-
 	
 	const cityIndex = Math.floor(Math.random() * cities.length)
 	const tour = getTour(cityIndex)
@@ -164,11 +181,16 @@ function draw() {
 	
 	const activeTourLength = getTourLength(tour)
 	//console.log(activeTourLength)
+	h1.innerText = `Current Distance: ${activeTourLength}`
+	
+	if(globalTrialCounter % modVal == 0) {
+		chartData.push({
+			x: globalTrialCounter,
+			y: activeTourLength
+		})
+	}
+	
 	++globalTrialCounter
-	chartData.push({
-		x: globalTrialCounter,
-		y: activeTourLength
-	})
 
 	chart.update()
 
@@ -182,25 +204,29 @@ function draw() {
 
 			// TODO: Remove this redundancy
 			const elem1 = currentCity.distances.find(elem => elem.with === prevCity.id)
-			elem1.strength = elem1.strength * Math.exp(-alpha*(len - activeTourLength)/m)
+			elem1.strength = elem1.strength * Math.exp(-alphaVal*(len - activeTourLength)/m)
 			
 			// TODO: ??????????????!!
 			const elem2 = prevCity.distances.find(elem => elem.with === currentCity.id)
-			elem2.strength = elem2.strength * Math.exp(-alpha*(len - activeTourLength)/m) 
+			elem2.strength = elem2.strength * Math.exp(-alphaVal*(len - activeTourLength)/m) 
 
 			
 			//	console.log(`Strength between ${currentCity.id} and ${prevCity.id} = ${elem1.strength}`)
 		}
 		if(activeTourLength - len < 0) {
-			console.log(`Negatively rewarded tour => ${t} in favor of ${tour}`)
+			//console.log(`Negatively rewarded tour => ${t} in favor of ${tour}`)
 		}
 	})
+
+	drawTour(tour)
 
 	cities.forEach((city, i) => {
 		//console.log(x, y)
 		
 		ellipse(city.x, city.y, 10)
 		textSize(20)
+		strokeWeight(1)
+		stroke(0,0,0)
 		text(i, city.x + 10, city.y + 10)
 
 		cityQueues[i] = createPriorityList(city)
@@ -208,7 +234,6 @@ function draw() {
 
 //	console.log(tours)
 //	console.log(tour1)
-	drawTour(tour)
 }
 
 function getTourLength(tour) {
@@ -252,7 +277,13 @@ function createPriorityList(currentCity) {
 	const nextIndex2 = getProbablisticIndex(cityDistSums, nextIndex1)
 
 	const nextCity1 = currentCity.distances[nextIndex1].with
-	const nextCity2 = currentCity.distances[nextIndex2].with
+
+	// ! Don't want -1 (that is the node itself -> would blow up)
+	let nextCity2 = currentCity.distances[nextIndex2].with 
+	if(nextCity2 == -1) {
+		nextCity2 = currentCity.distances[nextIndex2 - 1 > 0 ? nextIndex2 - 1 : nextIndex2 + 1].with 
+	}
+
 
 	//debugger
 	const remainingCities = currentCity.distances.filter(city => !(city.with  == nextCity1 || city.with == nextCity2 || city.with == -1)).map(city => city.with)
@@ -276,7 +307,10 @@ function createPriorityList(currentCity) {
 function getProbablisticIndex(distances, except) {
 	const randomNumber = Math.random() * distances[distances.length - 1]	
 	let index = find(distances, randomNumber)
-	if(index == except) index = getProbablisticIndex(distances, except)
+	if(index == except) {
+		// TODO: Statistically better alternative? (blows up on max call stack on big ns)
+		index = except - 1 >= 0 ? except - 1 : except + 1
+	}
 	return index
 }
 
@@ -299,6 +333,15 @@ function getTour(cityIndex) {
 		let index = 0
 		while(index < priorityQueue.length) {
 			const c = priorityQueue[index++]
+
+			// ! Fix this c = -1 bug sometimes
+			if(c == -1) {
+				console.error(`Possible crash detected`)
+				debugger
+				priorityQueue.splice(index - 1, 1)
+				c = priorityQueue[index]
+			}
+
 			const res = computeTour(cities[c].id)
 			if(res === true) {
 				// this city was found
@@ -324,7 +367,47 @@ function find(array, num) {
 	return i
 }
 
+function freezeControls() {
+	console.log('Controls freezed')
+	document.getElementById('startbtn').disabled = true
+	document.getElementById('stopbtn').disabled = false
+}
+
+function unfreezeControls() {
+	console.log('Controls unfreezed')
+	document.getElementById('startbtn').disabled = false
+	document.getElementById('stopbtn').disabled = true
+}
+
+function start() {
+	window.draw = draw
+	cityCount = parseInt(document.getElementById('citycount').value, 10)
+	T = 1/cityCount
+	frames = parseFloat(document.getElementById('frames').value, 10)
+	alphaVal = parseFloat(document.getElementById('alphaVal').value, 10)
+	modVal = parseFloat(document.getElementById('readingx').value, 10)
+	m = parseFloat(document.getElementById('mVal').value, 10)
+	tours = []
+	freezeControls()
+	globalTrialCounter = 0
+	clear()
+	boot()
+	loop()
+}
+
+function setCheck() {
+	circularPoints = this.checked
+}
+
+function stop() {
+	window.draw = function() { }
+	noLoop()
+	//clear()
+	unfreezeControls()
+}
+
+document.getElementById('startbtn').addEventListener('click', start, false)
+document.getElementById('stopbtn').addEventListener('click', stop, false)
+document.getElementById('iscircle').addEventListener('change', setCheck, false)
 
 window.setup = setup
-window.draw = draw
-window.stopThis = stopThis
