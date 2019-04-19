@@ -13,7 +13,7 @@
 }
 
 #chart {
-	width: 49vw;
+	width: 100%;
 }
 
 #chartarea {
@@ -21,6 +21,7 @@
 	flex-direction: column;
 	justify-content: space-around;
 	height: 100vh;
+	width: 50vw;
 	padding-left: 50px;
 	padding-right: 50px;
 }
@@ -61,4 +62,10 @@ h1 {
 .control label {
     width: 400px;
     display: inline-block;
+}
+
+div#mintourtext {
+    font-weight: bold;
+    text-align: center;
+    margin: 15px;
 }
