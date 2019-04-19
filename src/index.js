@@ -37,8 +37,7 @@ function getRandomPoint(minX, maxX, minY, maxY) {
 function setup() {
 	let myCanvas = createCanvas(width, height)
 	myCanvas.parent('p5')
-	boot()
-
+//	boot()
 	const ctx = document.getElementById('chart').getContext('2d')
 
 	chart = new Chart(ctx, {
@@ -62,9 +61,13 @@ function setup() {
 			},
 			scales: {
 				yAxes: [{
+					type: 'linear',
 					ticks: {
-						beginAtZero: true
-					}
+						beginAtZero: false,
+						//stepSize: .2,
+						//autoSkip: true,
+						//suggestedMin: 3
+					},
 				}],
 				xAxes: [{
 					type: 'linear',
@@ -105,6 +108,7 @@ function boot() {
 		
 		let cityX, cityY
 
+		// Calculate random position for city points
 		if(circularPoints) {
 			cityX = circleCenterX + radius*Math.cos(angleToMove)
 			cityY = circleCenterY + radius*Math.sin(angleToMove)
@@ -129,19 +133,40 @@ function boot() {
 	}
 
 	for(let i=0;i<cities.length;i++) {
-		const city1 = cities[i];
+		
+		const city1 = cities[i]
+
 		for(let j=0;j<cities.length;j++) {
-			if(i == j) {
+			
+			if(i == j) { // if same city, do not add it
+
 				city1.distances.push({
 					with: -1,
 					strength: 0,
 					distance: 0
 				})
+				
 				continue
+
 			}
-			const city2 = cities[j];
-			const distance = dist(city1.x, city1.y, city2.x, city2.y) / 1000 // * normalizing distance for suitable exponent values
-			// TODO: Make sure to keep city distances in sync
+
+			// TODO: Optimize using hashmap
+			// get next city
+			const city2 = cities[j]
+
+			// calculate distance of city with the next city
+
+			const width = document.getElementById('p5').offsetWidth
+			const height = document.getElementById('p5').offsetHeight
+
+			//debugger
+			const deltaX = (city1.x - city2.x)/width
+			const deltaY = (city1.y - city2.y)/height
+
+			const distance = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))
+
+			console.log(`Distance between City ${i+1} and ${j+1} is ${distance}`)
+
 			city1.distances.push({
 				with: j,
 				strength: Math.exp(-distance/T),
@@ -155,6 +180,7 @@ function boot() {
 		
 		const currentCity = cities[cIndex]
 
+		// Creating prioritylist for currentCity
 		const priorityList = createPriorityList(currentCity)
 		cityQueues[cIndex] = priorityList
 
@@ -264,26 +290,32 @@ function drawTour(tour) {
 	}
 }
 
-// TODO: Optimize it by using previously available prioritylist 
+// TODO: Optimize it by using previously available PL 
 function createPriorityList(currentCity) {
 	const queue = []
 	const cityDistSums = [currentCity.distances[0].strength]
+
+	const selfIndex = currentCity.distances.findIndex(elem => elem.with === -1)
 
 	for(let i=1;i<currentCity.distances.length;i++) {
 		cityDistSums[i] = cityDistSums[i-1] + currentCity.distances[i].strength
 	}
 
-	const nextIndex1 = getProbablisticIndex(cityDistSums)
-	const nextIndex2 = getProbablisticIndex(cityDistSums, nextIndex1)
+	const nextIndex1 = getProbablisticIndex(cityDistSums, selfIndex)
+	const nextIndex2 = getProbablisticIndex(cityDistSums, nextIndex1, selfIndex)
 
 	const nextCity1 = currentCity.distances[nextIndex1].with
+	const nextCity2 = currentCity.distances[nextIndex2].with
 
+	console.log(`Placing ${nextIndex1} and ${nextIndex2} on top. Current index: ${selfIndex}`)
+
+	/*
 	// ! Don't want -1 (that is the node itself -> would blow up)
-	let nextCity2 = currentCity.distances[nextIndex2].with 
 	if(nextCity2 == -1) {
+		console.log(`Hit current city. Mitigating it`)
 		nextCity2 = currentCity.distances[nextIndex2 - 1 > 0 ? nextIndex2 - 1 : nextIndex2 + 1].with 
 	}
-
+*/
 
 	//debugger
 	const remainingCities = currentCity.distances.filter(city => !(city.with  == nextCity1 || city.with == nextCity2 || city.with == -1)).map(city => city.with)
@@ -304,13 +336,16 @@ function createPriorityList(currentCity) {
 	return queue
 }
 
-function getProbablisticIndex(distances, except) {
+function getProbablisticIndex(distances, ...except) {
 	const randomNumber = Math.random() * distances[distances.length - 1]	
 	let index = find(distances, randomNumber)
-	if(index == except) {
+	
+	if(except.includes(index)) return getProbablisticIndex(distances, except)
+
+	/*{
 		// TODO: Statistically better alternative? (blows up on max call stack on big ns)
 		index = except - 1 >= 0 ? except - 1 : except + 1
-	}
+	}*/
 	return index
 }
 
@@ -411,3 +446,5 @@ document.getElementById('stopbtn').addEventListener('click', stop, false)
 document.getElementById('iscircle').addEventListener('change', setCheck, false)
 
 window.setup = setup
+
+if(module && module.hot) module.hot.accept()

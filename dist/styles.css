@@ -12,6 +12,10 @@
 	align-items: center;
 }
 
+#chart {
+	width: 49vw;
+}
+
 #chartarea {
 	display: flex;
 	flex-direction: column;
