@@ -4,7 +4,7 @@ import Chart from 'chart.js'
 const width = window.innerWidth / 2
 const height = window.innerHeight
 
-let radius = Math.min(width/2, height/2) - 50
+let radius = Math.min(width / 2, height / 2) - 50
 let angleToMove = randomAngle()
 let cities = []
 let cityCount = 70
@@ -12,7 +12,6 @@ let m = 50
 let T = 1 / cityCount
 let frames = 20
 let alphaVal = 0.3
-let activeAlpha = 1
 
 let modVal = 100
 
@@ -70,12 +69,17 @@ function setup() {
 					type: 'linear',
 					ticks: {
 						beginAtZero: false,
-						//stepSize: .2,
+						//		stepSize: .1,
+						//		maxTicksLimit: 5
 						//autoSkip: true,
 						//suggestedMin: 3
 					},
 				}],
 				xAxes: [{
+					scaleLabel: {
+						display: true,
+						labelString: 'Iterations'
+					},
 					type: 'linear',
 					position: 'bottom',
 					ticks: {
@@ -103,7 +107,7 @@ function setup() {
 function boot() {
 	let circleCenterX = width / 2
 	let circleCenterY = height / 2
-	
+
 	strokeWeight(4)
 	stroke(53, 53, 53)
 
@@ -206,14 +210,14 @@ let minTourLength = Infinity
 let minTour
 
 function draw() {
-	
+
 	clear()
 	strokeWeight(1)
 	stroke(0, 0, 0)
 
 	const cityIndex = Math.floor(Math.random() * cities.length)
 	const tour = getTour(cityIndex)
-	
+
 	tours.push(tour)
 
 	if (tours.length > m) {
@@ -223,7 +227,7 @@ function draw() {
 
 	const activeTourLength = getTourLength(tour)
 
-	if(activeTourLength < minTourLength) {
+	if (activeTourLength < minTourLength) {
 		minTourLength = activeTourLength
 		minTour = tour
 		minTourText.innerText = tour.join('->')
@@ -297,12 +301,12 @@ function getCityDistance(c1, c2) {
 function drawTour(tour, type) {
 	let prevCoordinates = [cities[tour[0]].x, cities[tour[0]].y]
 
-	
+
 	strokeWeight(4)
 	stroke(53, 53, 53)
 	//ellipse(...prevCoordinates, 10)
-	
-	if(type === 'min') {
+
+	if (type === 'min') {
 		stroke(255, 122, 122)
 	}
 
@@ -331,7 +335,7 @@ function createPriorityList(currentCity) {
 	const nextCity2 = nextIndex2 === -1 ? -1 : currentCity.distances[nextIndex2].with
 
 
-//	console.log(`Placing ${nextIndex1} and ${nextIndex2} on top. Current index: ${selfIndex}`)
+	//	console.log(`Placing ${nextIndex1} and ${nextIndex2} on top. Current index: ${selfIndex}`)
 
 	/*
 	// ! Don't want -1 (that is the node itself -> would blow up)
@@ -350,15 +354,15 @@ function createPriorityList(currentCity) {
 		return 1
 	})
 
-	if(nextCity1 !== -1) {
+	if (nextCity1 !== -1) {
 		queue.push(nextCity1)
 	}
-	if(nextCity2 !== -1 && nextIndex1 !== nextIndex2) {
+	if (nextCity2 !== -1 && nextIndex1 !== nextIndex2) {
 		queue.push(nextCity2)
 	}
 
 
-	
+
 	// queue.push(nextCity1, nextCity2)
 
 	//console.table(finalCities)
@@ -368,14 +372,14 @@ function createPriorityList(currentCity) {
 	})
 
 
-	if(nextIndex2 === -1) {
+	if (nextIndex2 === -1) {
 		// the stack would've blown up probably
 		const one = queue[0]
 		const two = queue[1]
-		if(Math.random() > 0.5) {
+		if (Math.random() > 0.5) {
 			queue[1] = one
 			queue[0] = two
-		}	
+		}
 	}
 
 	return queue
@@ -386,12 +390,12 @@ let stackblowerIndex = 0
 function getProbablisticIndex(distances, ...except) {
 	const randomNumber = Math.random() * distances[distances.length - 1]
 	let index = find(distances, randomNumber)
-	
+
 	//debugger
 
-//	console.warn(except, index)
+	//	console.warn(except, index)
 
-	if(!except.includes(index)) {
+	if (!except.includes(index)) {
 		stackblowerIndex = 0
 		return index
 	}
@@ -406,7 +410,7 @@ function getProbablisticIndex(distances, ...except) {
 		return index - 1 >= 0 ? index - 1 : index + 1
 	}*/
 
-	if(stackblowerIndex === 500) {
+	if (stackblowerIndex === 500) {
 		stackblowerIndex = 0
 		console.error(`Stack will blow up recursively`)
 		return -1
@@ -420,7 +424,7 @@ function getProbablisticIndex(distances, ...except) {
 		// TODO: Statistically better alternative? (blows up on max call stack on big ns)
 		index = except - 1 >= 0 ? except - 1 : except + 1
 	}*/
-	
+
 }
 
 function getTour(cityIndex) {
@@ -456,8 +460,8 @@ function getTour(cityIndex) {
 }
 
 function find(array, num) {
-	for(var i=0;i<array.length;i++) {
-		if(array[i] < num) continue
+	for (var i = 0; i < array.length; i++) {
+		if (array[i] < num) continue
 		break
 	}
 	return i
